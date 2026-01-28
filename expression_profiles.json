@@ -1,0 +1,139 @@
+{
+  "global_settings": {
+    "smoothing_alpha": 0.75,
+    "global_sensitivity_multiplier": 1.2,
+    "global_sensitivity_exponent": 0.95
+  },
+
+  "eye_postprocessor": {
+  "enabled": true,
+  "smoothing": 0.85,
+  "bias_strength": 0.6,
+  "deadzone": 0.03,
+  "pair_eyes": true
+  },
+
+  "global_overrides": {
+  "_comment": "Global modifications applied always, before emotion profiles. Includes multiply, power, add, clamp, hp_filter.",
+  "eyeWideLeft":     { "multiply": 1.3, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "eyeWideRight":    { "multiply": 1.3, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "browDownLeft":    { "multiply": 1, "power": 0.8, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "browDownRight":   { "multiply": 1, "power": 0.8, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "browInnerUp":     { "multiply": 1.3, "power": 0.8, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "browOuterUpLeft": { "multiply": 1.3, "power": 0.8, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "browOuterUpRight":{ "multiply": 1.3, "power": 0.8, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "cheekPuff":       { "multiply": 1, "power": 1, "add": 1, "clamp": [0, 100], "hp_filter": 1 },
+  "cheekSquintLeft": { "multiply": 5, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "cheekSquintRight":{ "multiply": 5, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "eyeBlinkLeft":    { "multiply": 1, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "eyeBlinkRight":   { "multiply": 1, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "eyeLookDownLeft": { "multiply": 1, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "eyeLookDownRight":{ "multiply": 1, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "eyeLookInLeft":   { "multiply": 1, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "eyeLookInRight":  { "multiply": 1, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "eyeLookOutLeft":  { "multiply": 1, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "eyeLookOutRight": { "multiply": 1, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "eyeLookUpLeft":   { "multiply": 1, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "eyeLookUpRight":  { "multiply": 1, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "jawForward":      { "multiply": 1.5, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "jawLeft":         { "multiply": 1.3, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "jawOpen":         { "multiply": 1.5, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "jawRight":        { "multiply": 1.3, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "mouthClose":      { "multiply": 1, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "mouthDimpleLeft": { "multiply": 1, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "mouthDimpleRight":{ "multiply": 1, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "mouthFrownLeft":  { "multiply": 1, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "mouthFrownRight": { "multiply": 1, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "mouthFunnel":     { "multiply": 1, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "mouthLeft":       { "multiply": 1.3, "power": 1, "add": 0, "clamp": [0, 1], "hp_filter": 1 },
+  "mouthRight":      { "multiply": 1.3, "power": 1, "add": 0, "clamp": [0, 1], "hp_filter": 1 },
+  "mouthPucker":     { "multiply": 1, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "mouthRollLower":  { "multiply": 1, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "mouthRollUpper":  { "multiply": 1, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "mouthShrugLower": { "multiply": 1, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "mouthShrugUpper": { "multiply": 1, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "mouthSmileLeft":  { "multiply": 2, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "mouthSmileRight": { "multiply": 2, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "mouthStretchLeft":{ "multiply": 5, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "mouthStretchRight":{ "multiply": 5, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "mouthUpperUpLeft":{ "multiply": 1, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "mouthUpperUpRight":{ "multiply": 1, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "noseSneerLeft":   { "multiply": 1, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "noseSneerRight":  { "multiply": 1, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 },
+  "tongueOut":       { "multiply": 1, "power": 1, "add": 0, "clamp": [0, 100], "hp_filter": 1 }
+  },
+
+  "emotion_profiles": {
+    "Neutral": {
+      "_comment": "Applied *after* global_overrides.",
+      "eyeWideLeft": { "multiply": 3, "power": 0.75, "add": 0.5},
+      "eyeWideRight": { "multiply": 3, "power": 0.75, "add": 0.5}
+    },
+    "Happiness": {
+      "mouthSmileLeft": { "multiply": 1.4, "power": 0.8 },
+      "mouthSmileRight": { "multiply": 1.4, "power": 0.8 },
+      "cheekSquintLeft": { "multiply": 1.3, "power": 0.9 },
+      "cheekSquintRight": { "multiply": 1.3, "power": 0.9 },
+      "eyeSquintLeft": { "multiply": 1, "power": 0.9 },
+      "eyeSquintRight": { "multiply": 1, "power": 0.9 },
+      "mouthDimpleLeft": { "multiply": 1},
+      "mouthDimpleRight": { "multiply": 1},
+      "eyeWideLeft": { "multiply": 2, "add": 0.4, "power": 0.6},
+      "eyeWideRight": { "multiply": 2, "add": 0.4, "power": 0.6}
+    },
+    "Sadness": {
+      "mouthFrownLeft": { "multiply": 1.5, "power": 0.8 },
+      "mouthFrownRight": { "multiply": 1.5, "power": 0.8 },
+      "browInnerUp": { "multiply": 1.4, "power": 0.85 },
+      "mouthPucker": { "multiply": 0.7 },
+      "mouthShrugLower": { "multiply": 1.2 }
+    },
+    "Anger": {
+      "browDownLeft": { "multiply": 1.8, "power": 0.75 },
+      "browDownRight": { "multiply": 1.8, "power": 0.75 },
+      "noseSneerLeft": { "multiply": 4.0, "power": 0.7, "add": 0.1 },
+      "noseSneerRight": { "multiply": 4.0, "power": 0.7, "add": 0.1},
+      "jawForward": { "multiply": 1.4 },
+      "mouthPressLeft": { "multiply": 1.6, "power": 0.85 },
+      "mouthPressRight": { "multiply": 1.6, "power": 0.85 },
+      "cheekPuff": { "multiply": 1.7, "power": 0.8 },
+      "eyeSquintLeft": { "multiply": 1.5, "power": 0.8 },
+      "eyeSquintRight": { "multiply": 1.5, "power": 0.8 },
+      "mouthRollUpper": { "multiply": 1.3 }
+    },
+    "Surprise": {
+      "browInnerUp": { "multiply": 1.8, "power": 0.7 }, 
+      "eyeWideLeft": { "multiply": 1.6, "power": 0.75 },
+      "eyeWideRight": { "multiply": 1.6, "power": 0.75 },
+      "jawOpen": { "multiply": 1.5, "power": 0.85 },
+      "mouthFunnel": { "multiply": 1.4 }
+    },
+    "Fear": {
+      "browInnerUp": { "multiply": 1.5, "power": 0.8 },
+      "eyeWideLeft": { "multiply": 1.4, "power": 0.85 },
+      "eyeWideRight": { "multiply": 1.4, "power": 0.85 },
+      "mouthStretchLeft": { "multiply": 1.5, "power": 0.8 },
+      "mouthStretchRight": { "multiply": 1.5, "power": 0.8 },
+      "jawOpen": { "multiply": 1.2 }
+    },
+    "Disgust": {
+      "noseSneerLeft": { "multiply": 4.5, "power": 0.55 }, 
+      "noseSneerRight": { "multiply": 4.5, "power": 0.55 },
+      "mouthUpperUpLeft": { "multiply": 1.6, "power": 0.75 },
+      "mouthUpperUpRight": { "multiply": 1.6, "power": 0.75 },
+      "mouthShrugLower": { "multiply": 1.4 },
+      "browDownLeft": { "multiply": 1.4 },
+      "browDownRight": { "multiply": 1.4 },
+      "cheekPuff": { "multiply": 1.5 },
+      "eyeSquintLeft": { "multiply": 1.3 },
+      "eyeSquintRight": { "multiply": 1.3 }
+    },
+    "Contempt": {
+      "mouthDimpleRight": { "multiply": 1.9, "power": 0.75 },
+      "noseSneerRight": { "multiply": 1.7 },
+      "cheekSquintRight": { "multiply": 1.3 },
+      "mouthPressRight": { "multiply": 1.4 }
+  
+    }
+  }
+}

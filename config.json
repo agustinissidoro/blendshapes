@@ -1,0 +1,21 @@
+{
+  "__modes": "setting, performance or fake",
+  "SOURCE": 0,
+  "FLIP_IMAGE": false,
+  "TARGET_SIZE": 1024,
+  "LIVE_LINK_IP": "192.168.100.2",
+  "LIVE_LINK_PORT": 11111,
+  "FACE_MODEL_PATH": "./models/face_landmarker.task",
+  "EMOTION_MODEL_PATH": "./models/enet_b0_8_best_afew.onnx",
+  "TARGET_FPS": 30,
+  "DISPLAY_VIDEO": false,
+  "SHOW_FPS": false,
+  "HP_FILTER_WINDOW": 7,
+  "HP_PITCH_OFFSET": 0.0,
+  "EVERY_FPS": 6,
+  "POST_PROCESS_BLENDSHAPES": false,
+  "EXPRESSION_CONFIG_PATH": "expression_profiles.json",
+  "MODE": "setting",
+  "GLOBAL_EXPRESSION_OVERRIDES": true,
+  "EMOTION_RECOGNITION_WEIGHTS": false
+}
