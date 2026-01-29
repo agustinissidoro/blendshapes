@@ -21,7 +21,7 @@ class EmotionWorker(threading.Thread):
         with self._lock:
             self._frame_counter += 1
             if self._frame_counter % self.process_every_n == 0:
-                self._frame = frame_rgb.copy()
+                self._frame = frame_rgb
 
     def get_latest_result(self):
         """Access the most recent emotion recognition result."""

@@ -82,8 +82,8 @@ class BlendshapePostprocessor:
             s = max(float(low), min(float(high), s))
 
         # High-pass filter (optional)
-        if "hp_alpha" in ops:
-            alpha = float(ops["hp_alpha"])  # 1.0 = no HPF, lower = stronger filter
+        if "hp_alpha" in ops or "hp_filter" in ops:
+            alpha = float(ops.get("hp_alpha", ops.get("hp_filter")))  # 1.0 = no HPF, lower = stronger filter
             prev_raw = self._last_raw_scores.get(category_name, s)
             hpf_val = alpha * (s - prev_raw)
             self._last_raw_scores[category_name] = s
@@ -174,7 +174,7 @@ class EyePostProcessor:
         try:
             with open(self.config_path, "r") as f:
                 cfg = json.load(f)
-            eye_cfg = cfg.get(self.DEFAULT_CONFIG_SECTION, {})
+            eye_cfg = cfg.get(self.DEFAULT_CONFIG_SECTION, cfg.get("eye_postprocessor", {}))
 
             self.enabled = eye_cfg.get("enabled", self.enabled)
             self.smoothing = eye_cfg.get("smoothing", self.smoothing)

@@ -4,10 +4,8 @@ from statistics import mean
 from enum import Enum
 import struct
 from typing import Tuple
-import datetime
 import uuid
 import numpy as np
-from timecode import Timecode
 
 class FaceBlendShape(Enum):
     EyeBlinkLeft = 0
@@ -91,16 +89,11 @@ class PyLiveLinkFace:
         self._filter_size = filter_size
 
         self._version = 6
-        now = datetime.datetime.now()
-        timcode = Timecode(
-            self._fps, f'{now.hour}:{now.minute}:{now.second}:{now.microsecond * 0.001}')
-        self._frames = timcode.frames
+        self._frame_counter = 0
         self._sub_frame = 1056060032                # I don't know how to calculate this
         self._denominator = int(self._fps / 60)     # 1 most of the time
         self._blend_shapes = [0.000] * 61
-        self._old_blend_shapes = []                 # used for filtering
-        for i in range(61):
-            self._old_blend_shapes.append(deque([0.0], maxlen = self._filter_size))
+        self._old_blend_shapes = [None] * 61         # used for filtering, lazy init
 
     @property
     def uuid(self) -> str:
@@ -141,10 +134,8 @@ class PyLiveLinkFace:
         name_lenght_packed = struct.pack('!i', len(self._name))
         name_packed = bytes(self._name, 'utf-8')
 
-        now = datetime.datetime.now()
-        timcode = Timecode(
-            self._fps, f'{now.hour}:{now.minute}:{now.second}:{now.microsecond * 0.001}')
-        frames_packed = struct.pack("!II", timcode.frames, self._sub_frame)  
+        self._frame_counter = (self._frame_counter + 1) & 0xFFFFFFFF
+        frames_packed = struct.pack("!II", self._frame_counter, self._sub_frame)
         frame_rate_packed = struct.pack("!II", self._fps, self._denominator)
         data_packed = struct.pack('!B61f', 61, *self._blend_shapes)
         
@@ -193,8 +184,13 @@ class PyLiveLinkFace:
         if no_filter:
             self._blend_shapes[index.value] = value
         else:
-            self._old_blend_shapes[index.value].append(value)
-            filterd_value = mean(self._old_blend_shapes[index.value])
+            history = self._old_blend_shapes[index.value]
+            if history is None:
+                history = deque([value], maxlen=self._filter_size)
+                self._old_blend_shapes[index.value] = history
+            else:
+                history.append(value)
+            filterd_value = mean(history)
             self._blend_shapes[index.value] = filterd_value
 
     @staticmethod

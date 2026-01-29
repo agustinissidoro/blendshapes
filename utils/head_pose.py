@@ -14,6 +14,7 @@ class HeadPoseProcessor:
                  max_yaw_deg: float = 45.0,
                  max_pitch_deg: float = 20.0,
                  max_roll_deg: float = 45.0,
+                 yaw_offset_deg: float = 0.0,
                  pitch_offset_deg: float = 0.0,
                  euler_order: str = 'yxz'): # Allow configuring Euler order
         # Configuration
@@ -21,6 +22,7 @@ class HeadPoseProcessor:
         self.max_yaw_deg = max_yaw_deg
         self.max_pitch_deg = max_pitch_deg
         self.max_roll_deg = max_roll_deg
+        self.yaw_offset_deg = yaw_offset_deg
         self.pitch_offset_deg = pitch_offset_deg
         self.euler_order = euler_order # Store the chosen order
         self.epsilon = 1e-6
@@ -86,10 +88,11 @@ class HeadPoseProcessor:
         pitch_filtered = statistics.mean(self._pitch_history) if self._pitch_history else 0.0
         roll_filtered = statistics.mean(self._roll_history) if self._roll_history else 0.0
 
+        yaw_compensated = yaw_filtered + self.yaw_offset_deg
         pitch_compensated = pitch_filtered + self.pitch_offset_deg
 
         # Apply Final Axis Mapping & Signs (CONFIRM THESE based on testing)
-        final_yaw = yaw_filtered         # Example: Yaw -> Yaw
+        final_yaw = yaw_compensated      # Example: Yaw -> Yaw
         final_pitch = -pitch_compensated # Example: Pitch -> -Pitch (Compensated, Negated)
         final_roll = roll_filtered       # Example: Roll -> Roll
 

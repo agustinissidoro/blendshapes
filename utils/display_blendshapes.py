@@ -10,7 +10,8 @@ def draw_overlay(
     landmarks=None,
     emotions=None,
     max_display=52,
-    target_size=512
+    target_size=512,
+    canvas=None
 ):
     """Draw bounding box, blendshapes, head pose, and overlay emotions directly on the image frame."""
 
@@ -23,8 +24,11 @@ def draw_overlay(
     canvas_width = target_size + 1000
     canvas_height = target_size
 
-    # Blank canvas
-    canvas = np.zeros((canvas_height, canvas_width, 3), dtype=np.uint8)
+    # Blank canvas (reuse when provided)
+    if canvas is None or canvas.shape[:2] != (canvas_height, canvas_width):
+        canvas = np.zeros((canvas_height, canvas_width, 3), dtype=np.uint8)
+    else:
+        canvas.fill(0)
 
     # Resize frame to target size
     frame_resized = cv2.resize(frame, (target_size, target_size))
