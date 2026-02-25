@@ -12,12 +12,11 @@ current_script_dir = os.path.dirname(os.path.abspath(__file__))
 main_project_dir = os.path.dirname(current_script_dir)
 sys.path.insert(0, main_project_dir)
 
-# --- Import pylivelinkface ---
 try:
-    from pylivelinkface import PyLiveLinkFace, FaceBlendShape
+    from network.pylivelinkface import PyLiveLinkFace, FaceBlendShape
 except ImportError:
-    print("ERROR: Could not import pylivelinkface.")
-    print("Please ensure pylivelinkface.py is in the same directory or your Python path.")
+    print("ERROR: Could not import network.pylivelinkface.")
+    print("Please ensure the project root is on your Python path.")
     sys.exit(1)
 
 # --- Configuration ---
