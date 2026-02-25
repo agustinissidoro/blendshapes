@@ -203,7 +203,8 @@ def main():
 
     finally:
         signal.signal(signal.SIGINT, original_sigint_handler)
-        state_sender.send_message("/livelink/state", [0])
+        if 'state_sender' in locals() and isinstance(state_sender, OscUdpSender):
+            state_sender.send_message("/livelink/state", [0])
         print("Cleaning up...")
         if isinstance(cam, VideoCaptureThread) and cam.is_alive(): 
             cam.stop()
