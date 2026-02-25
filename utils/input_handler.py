@@ -29,8 +29,8 @@ class InputHandler(threading.Thread):
             char = getattr(key, 'char', None)
             if char == '0':
                 action = "reload_config"
-            elif char in ("f", "F"):
-                action = "toggle_tracking"
+            # elif char in ("f", "F"):
+            #     action = "toggle_tracking"
         except Exception:
             pass
 
@@ -56,7 +56,7 @@ class InputHandler(threading.Thread):
 
     def run(self):
         """Starts the keyboard listener loop."""
-        print("[InputHandler] Starting keyboard listener... (Press '0' to reload config, 'f' to toggle tracking, 'Shift+Esc' to quit)")
+        print("[InputHandler] Starting keyboard listener... (Press '0' to reload config, 'Shift+Esc' to quit)")
         try:
             with keyboard.Listener(on_press=self._on_press, on_release=self._on_release) as self._listener:
                 self._listener.join()

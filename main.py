@@ -1,5 +1,6 @@
 import time
 import signal
+import errno
 import cv2
 import numpy as np
 import queue
@@ -71,15 +72,52 @@ def main():
     input_handler = InputHandler(action_queue)
     # --- ---
 
-    udp_handler = build_udp_command_handler(sender=sender, cfg=cfg)
-    udp_server = UdpCommandServer(cfg["UDP_COMMAND_IP"], cfg["UDP_COMMAND_PORT"], udp_handler)
+    send_face_tracking = True
+    code_running = 0
+    live_link_state = 0
+
+    def on_tracking_command(desired_state):
+        if desired_state is None:
+            action_queue.put("toggle_tracking")
+        else:
+            action_queue.put(("set_tracking", bool(desired_state)))
+
+    def on_get_state_command():
+        action_queue.put("publish_state")
+
+    udp_handler = build_udp_command_handler(
+        sender=sender,
+        cfg=cfg,
+        on_tracking=on_tracking_command,
+        on_get_state=on_get_state_command,
+    )
+    udp_server = None
+    try:
+        udp_server = UdpCommandServer(cfg["UDP_COMMAND_IP"], cfg["UDP_COMMAND_PORT"], udp_handler)
+    except OSError as e:
+        if e.errno == errno.EADDRINUSE:
+            print(
+                f"[UdpCommandServer] {cfg['UDP_COMMAND_IP']}:{cfg['UDP_COMMAND_PORT']} is already in use. "
+                "Continuing without UDP command listener."
+            )
+        else:
+            raise
     state_sender = OscUdpSender(cfg["UDP_STATE_IP"], cfg["UDP_STATE_PORT"])
+
+    def publish_tracking_state():
+        state_sender.send_message("/livelink/tracking", [1 if send_face_tracking else 0])
+
+    def publish_state():
+        state_sender.send_message("/livelink/code", [code_running])
+        publish_tracking_state()
 
     sender.start()
     cam.start()
     input_handler.start()
-    udp_server.start()
-    state_sender.send_message("/livelink/state", [1])
+    if udp_server is not None:
+        udp_server.start()
+    code_running = 1
+    publish_state()
     print("Processing started...")
 
     processed_pose_angles_for_display = None # For overlay display
@@ -90,8 +128,6 @@ def main():
         overlay_canvas = np.zeros((canvas_height, canvas_width, 3), dtype=np.uint8)
 
     run_main_loop = True
-    send_face_tracking = True
-    last_tracking_state = None
     
     try:
         while run_main_loop:
@@ -101,14 +137,34 @@ def main():
             
             try:
                 action = action_queue.get_nowait() # Check queue without waiting
-                if action == "reload_config":
+                action_name = action
+                action_value = None
+                if isinstance(action, tuple) and len(action) == 2:
+                    action_name, action_value = action
+
+                if action_name == "reload_config":
                     print("[Main] Action: Reloading expression config...")
                     blendshape_post_processor.load_config()
                     eye_post_processor.load_config()
-                elif action == "toggle_tracking":
+                elif action_name == "toggle_tracking":
                     send_face_tracking = not send_face_tracking
                     print(f"[Main] Action: Face tracking send toggled to {'ON' if send_face_tracking else 'OFF'}.")
-                elif action == "quit":
+                    publish_tracking_state()
+                elif action_name == "set_tracking":
+                    target_tracking_state = bool(action_value)
+                    if target_tracking_state != send_face_tracking:
+                        send_face_tracking = target_tracking_state
+                        print(f"[Main] Action: Face tracking send set to {'ON' if send_face_tracking else 'OFF'}.")
+                    else:
+                        print(f"[Main] Action: Face tracking already {'ON' if send_face_tracking else 'OFF'}.")
+                    publish_tracking_state()
+                elif action_name == "publish_state":
+                    publish_state()
+                    print(
+                        f"[Main] Action: Published current state "
+                        f"(livelink_code={code_running}, tracking={1 if send_face_tracking else 0})."
+                    )
+                elif action_name == "quit":
                     print("[Main] Action: Quit requested via keyboard.")
                     run_main_loop = False
                     continue 
@@ -116,14 +172,15 @@ def main():
                 pass
             # --- End Action Check ---
 
+            current_live_link_state = 1 if (sender.is_alive() and sender.has_successful_send()) else 0
+            if current_live_link_state != live_link_state:
+                live_link_state = current_live_link_state
+                state_sender.send_message("/livelink/state", [live_link_state])
+
             latest_snapshot = landmarker_state.snapshot()
             current_blendshapes = latest_snapshot.blendshapes
             current_landmarks = latest_snapshot.landmarks
             current_transform = latest_snapshot.transform_matrix
-            tracking_state = 1 if (send_face_tracking and current_blendshapes is not None) else 0
-            if tracking_state != last_tracking_state:
-                state_sender.send_message("/livelink/tracking", [tracking_state])
-                last_tracking_state = tracking_state
 
             if frame is None:
                 scheduler.wait_for_next_frame() # Ensure scheduler still runs
@@ -204,7 +261,10 @@ def main():
     finally:
         signal.signal(signal.SIGINT, original_sigint_handler)
         if 'state_sender' in locals() and isinstance(state_sender, OscUdpSender):
-            state_sender.send_message("/livelink/state", [0])
+            code_running = 0
+            state_sender.send_message("/livelink/code", [0])
+            if live_link_state == 1:
+                state_sender.send_message("/livelink/state", [0])
         print("Cleaning up...")
         if isinstance(cam, VideoCaptureThread) and cam.is_alive(): 
             cam.stop()

@@ -32,6 +32,8 @@ class LiveLinkSender(threading.Thread):
         self._override_lock = threading.Lock()
         self._blink_right_on = False
         self._tongue_out_on = False
+        self._status_lock = threading.Lock()
+        self._has_successful_send = False
 
         # Socket setup
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -86,6 +88,13 @@ class LiveLinkSender(threading.Thread):
         if self.running:
              print("[LiveLinkSender] Stopping sender...")
         self.running = False
+
+    def is_connected(self) -> bool:
+        return self._socket is not None
+
+    def has_successful_send(self) -> bool:
+        with self._status_lock:
+            return self._has_successful_send
 
     def set_mode(self, mode: str):
         mode = mode.lower().strip()
@@ -143,6 +152,9 @@ class LiveLinkSender(threading.Thread):
             for category in blendshapes:
                 name = category.category_name
                 if not name: continue
+                # Ignore metadata/control channels (e.g. "_neutral") that are not ARKit blendshapes.
+                if name.startswith("_"):
+                    continue
                 if self.swap_left_right:
                     name = self._swap_left_right_name(name)
                 enum_key_name = name[0].upper() + name[1:]
@@ -227,6 +239,8 @@ class LiveLinkSender(threading.Thread):
             overrides = self._apply_transient_overrides(face)
             payload = face.encode()
             self._socket.sendall(payload)
+            with self._status_lock:
+                self._has_successful_send = True
             if overrides:
                 self._restore_overrides(face, overrides)
         except socket.error as se:

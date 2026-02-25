@@ -98,7 +98,6 @@ Or on macOS, double-click/run:
 Current runtime keys:
 
 - `0`: reloads expression config (`reload_config` action).
-- `f`: toggles face-tracking send to Live Link on/off.
 - `Shift + Esc`: cleanly stops the application.
 
 ## UDP / OSC functions
@@ -119,14 +118,20 @@ The app listens on `UDP_COMMAND_IP:UDP_COMMAND_PORT` and accepts OSC messages.
 | `/livelink/random_fast` | none | Random mode with `TARGET_FPS` rate. |
 | `/livelink/blink_right` | optional bool-like arg | With arg: set forced right blink on/off. Without arg: toggle. |
 | `/livelink/tongue_out` | optional bool-like arg | With arg: set tongue-out on/off. Without arg: toggle. |
+| `/livelink/tracking` | optional bool-like arg | With arg (`0/1`, `false/true`, etc.): set face-tracking send OFF/ON. Without arg: toggle face-tracking send. |
+| `/get_state` or `get_state` | none | Immediately publishes current `/livelink/code` and `/livelink/tracking`. |
 
 ## Outbound OSC state
 
 The app also sends OSC status messages to `UDP_STATE_IP:UDP_STATE_PORT`.
 
 - `/livelink/state`:
-  - `1` on startup.
+  - Emitted only after the first successful LiveLink UDP send.
+  - `1` when the sender becomes effectively reachable/sending.
+  - `0` when that state drops or on shutdown.
+- `/livelink/code`:
+  - `1` while the app code is running.
   - `0` on shutdown.
 - `/livelink/tracking`:
-  - `1` when sending is enabled (`f`) and a face is currently tracked.
-  - `0` when sending is disabled or no face is currently tracked.
+  - `1` when face-tracking send is enabled.
+  - `0` when face-tracking send is disabled.
