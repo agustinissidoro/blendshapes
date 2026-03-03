@@ -4,7 +4,7 @@
   "TARGET_SIZE": 1024,
   "LIVE_LINK_IP": "192.168.100.2",
   "LIVE_LINK_PORT": 11112,
-  "LIVE_LINK_CLIENT_NAME": "Python_LiveLinkFace",
+  "LIVE_LINK_CLIENT_NAME": "LiveLink_Tenor",
   "TARGET_FPS": 30,
   "DISPLAY_VIDEO": false,
   "SHOW_FPS": false,
