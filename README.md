@@ -69,6 +69,7 @@ Or on macOS, double-click/run:
 | `TARGET_SIZE` | int | `1024` | Square crop size used in processing/display. |
 | `LIVE_LINK_IP` | str | `192.168.100.2` | Destination IP for outgoing Live Link UDP packets. |
 | `LIVE_LINK_PORT` | int | `11111` | Destination port for outgoing Live Link UDP packets. |
+| `LIVE_LINK_CLIENT_NAME` | str | `Python_LiveLinkFace` | Subject/client name encoded in outgoing Live Link payloads. |
 | `FACE_MODEL_PATH` | str | `./models/face_landmarker.task` | MediaPipe face landmarker model path. |
 | `TARGET_FPS` | int | `30` | Main loop / sender target frame rate. |
 | `DISPLAY_VIDEO` | bool | `true` | Show debug video window with overlay. |

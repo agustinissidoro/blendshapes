@@ -9,16 +9,25 @@ from utils.scheduler import FrameScheduler
 
 
 class LiveLinkSender(threading.Thread):
-    def __init__(self, ip: str, port: int, swap_left_right: bool = False, target_fps: int = 60, pair_eyelids: bool = True):
+    def __init__(
+        self,
+        ip: str,
+        port: int,
+        client_name: str = "Python_LiveLinkFace",
+        swap_left_right: bool = False,
+        target_fps: int = 60,
+        pair_eyelids: bool = True,
+    ):
         super().__init__()
         self.ip = ip
         self.port = port
+        self.client_name = client_name
         self.swap_left_right = swap_left_right
         self.target_fps = target_fps
         self.pair_eyelids = pair_eyelids
         self.running = False
-        self._face_normal = PyLiveLinkFace(fps=target_fps)  # Normal face state
-        self._face_override = PyLiveLinkFace(fps=target_fps)  # Neutral/random override state
+        self._face_normal = PyLiveLinkFace(name=self.client_name, fps=target_fps)  # Normal face state
+        self._face_override = PyLiveLinkFace(name=self.client_name, fps=target_fps)  # Neutral/random override state
         # State for facial blendshape reset logic (if used by update_blendshapes)
         self._latest_blendshapes: List[Category] = []
         self._previous_facial_keys: Set[str] = set()

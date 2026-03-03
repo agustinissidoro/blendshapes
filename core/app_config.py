@@ -11,6 +11,7 @@ DEFAULTS: Dict[str, Any] = {
     "TARGET_SIZE": 1024,
     "LIVE_LINK_IP": "192.168.100.2",
     "LIVE_LINK_PORT": 11111,
+    "LIVE_LINK_CLIENT_NAME": "Python_LiveLinkFace",
     "FACE_MODEL_PATH": "./models/face_landmarker.task",
     "TARGET_FPS": 30,
     "DISPLAY_VIDEO": True,

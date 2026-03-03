@@ -55,6 +55,7 @@ def main():
     sender = LiveLinkSender(
         cfg["LIVE_LINK_IP"],
         cfg["LIVE_LINK_PORT"],
+        client_name=cfg["LIVE_LINK_CLIENT_NAME"],
         swap_left_right=cfg["BLENDSHAPE_SWAP_LR"],
         target_fps=cfg["TARGET_FPS"],
         pair_eyelids=cfg["PAIR_EYELIDS"]
