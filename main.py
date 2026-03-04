@@ -86,11 +86,19 @@ def main():
     def on_get_state_command():
         action_queue.put("publish_state")
 
+    def on_set_headpose_offsets(yaw_offset_deg, pitch_offset_deg, additive):
+        action_queue.put(("set_headpose_offsets", (yaw_offset_deg, pitch_offset_deg, bool(additive))))
+
+    def on_reset_headpose_offsets():
+        action_queue.put("reset_headpose_offsets")
+
     udp_handler = build_udp_command_handler(
         sender=sender,
         cfg=cfg,
         on_tracking=on_tracking_command,
         on_get_state=on_get_state_command,
+        on_set_headpose_offsets=on_set_headpose_offsets,
+        on_reset_headpose_offsets=on_reset_headpose_offsets,
     )
     udp_server = None
     try:
@@ -108,9 +116,18 @@ def main():
     def publish_tracking_state():
         state_sender.send_message("/livelink/tracking", [1 if send_face_tracking else 0])
 
+    def publish_headpose_offset_state():
+        yaw_offset, pitch_offset = head_processor.get_offsets()
+        yaw_correction, pitch_correction = head_processor.get_offset_corrections()
+        state_sender.send_message("/livelink/headpose/offset/yaw", [yaw_offset])
+        state_sender.send_message("/livelink/headpose/offset/pitch", [pitch_offset])
+        state_sender.send_message("/livelink/headpose/offset/correction/yaw", [yaw_correction])
+        state_sender.send_message("/livelink/headpose/offset/correction/pitch", [pitch_correction])
+
     def publish_state():
         state_sender.send_message("/livelink/code", [code_running])
         publish_tracking_state()
+        publish_headpose_offset_state()
 
     sender.start()
     cam.start()
@@ -161,10 +178,38 @@ def main():
                     publish_tracking_state()
                 elif action_name == "publish_state":
                     publish_state()
+                    yaw_offset_deg, pitch_offset_deg = head_processor.get_offsets()
                     print(
                         f"[Main] Action: Published current state "
-                        f"(livelink_code={code_running}, tracking={1 if send_face_tracking else 0})."
+                        f"(livelink_code={code_running}, tracking={1 if send_face_tracking else 0}, "
+                        f"yaw_offset={yaw_offset_deg:.3f}, pitch_offset={pitch_offset_deg:.3f})."
                     )
+                elif action_name == "set_headpose_offsets":
+                    yaw_offset_deg, pitch_offset_deg, additive = action_value
+                    yaw_offset_deg, pitch_offset_deg = head_processor.set_offsets(
+                        yaw_offset_deg=yaw_offset_deg,
+                        pitch_offset_deg=pitch_offset_deg,
+                        additive=bool(additive),
+                    )
+                    yaw_correction, pitch_correction = head_processor.get_offset_corrections()
+                    yaw_default, pitch_default = head_processor.get_default_offsets()
+                    update_mode = "delta" if additive else "absolute"
+                    print(
+                        f"[Main] Action: Head pose correction updated ({update_mode}) "
+                        f"default(yaw={yaw_default:.3f}, pitch={pitch_default:.3f}), "
+                        f"correction(yaw={yaw_correction:.3f}, pitch={pitch_correction:.3f}), "
+                        f"effective(yaw={yaw_offset_deg:.3f}, pitch={pitch_offset_deg:.3f})"
+                    )
+                    publish_headpose_offset_state()
+                elif action_name == "reset_headpose_offsets":
+                    yaw_offset_deg, pitch_offset_deg = head_processor.reset_offsets()
+                    yaw_default, pitch_default = head_processor.get_default_offsets()
+                    print(
+                        "[Main] Action: Head pose correction reset "
+                        f"(default yaw={yaw_default:.3f}, default pitch={pitch_default:.3f}, "
+                        f"effective yaw={yaw_offset_deg:.3f}, effective pitch={pitch_offset_deg:.3f})"
+                    )
+                    publish_headpose_offset_state()
                 elif action_name == "quit":
                     print("[Main] Action: Quit requested via keyboard.")
                     run_main_loop = False

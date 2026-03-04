@@ -22,8 +22,12 @@ class HeadPoseProcessor:
         self.max_yaw_deg = max_yaw_deg
         self.max_pitch_deg = max_pitch_deg
         self.max_roll_deg = max_roll_deg
-        self.yaw_offset_deg = yaw_offset_deg
-        self.pitch_offset_deg = pitch_offset_deg
+        self._default_yaw_offset_deg = float(yaw_offset_deg)
+        self._default_pitch_offset_deg = float(pitch_offset_deg)
+        self._yaw_offset_correction_deg = 0.0
+        self._pitch_offset_correction_deg = 0.0
+        self.yaw_offset_deg = 0.0
+        self.pitch_offset_deg = 0.0
         self.euler_order = euler_order # Store the chosen order
         self.epsilon = 1e-6
 
@@ -34,6 +38,45 @@ class HeadPoseProcessor:
         self._prev_unwrapped_yaw = 0.0
         self._prev_unwrapped_pitch = 0.0
         self._prev_unwrapped_roll = 0.0
+        self._refresh_effective_offsets()
+
+    def _refresh_effective_offsets(self) -> None:
+        self.yaw_offset_deg = self._default_yaw_offset_deg + self._yaw_offset_correction_deg
+        self.pitch_offset_deg = self._default_pitch_offset_deg + self._pitch_offset_correction_deg
+
+    def get_offsets(self) -> Tuple[float, float]:
+        return float(self.yaw_offset_deg), float(self.pitch_offset_deg)
+
+    def get_default_offsets(self) -> Tuple[float, float]:
+        return float(self._default_yaw_offset_deg), float(self._default_pitch_offset_deg)
+
+    def get_offset_corrections(self) -> Tuple[float, float]:
+        return float(self._yaw_offset_correction_deg), float(self._pitch_offset_correction_deg)
+
+    def set_offsets(
+        self,
+        yaw_offset_deg: Optional[float] = None,
+        pitch_offset_deg: Optional[float] = None,
+        additive: bool = False,
+    ) -> Tuple[float, float]:
+        if yaw_offset_deg is not None:
+            yaw_value = float(yaw_offset_deg)
+            self._yaw_offset_correction_deg = (
+                self._yaw_offset_correction_deg + yaw_value if additive else yaw_value
+            )
+        if pitch_offset_deg is not None:
+            pitch_value = float(pitch_offset_deg)
+            self._pitch_offset_correction_deg = (
+                self._pitch_offset_correction_deg + pitch_value if additive else pitch_value
+            )
+        self._refresh_effective_offsets()
+        return self.get_offsets()
+
+    def reset_offsets(self) -> Tuple[float, float]:
+        self._yaw_offset_correction_deg = 0.0
+        self._pitch_offset_correction_deg = 0.0
+        self._refresh_effective_offsets()
+        return self.get_offsets()
 
     def _unwrap_angle(self, current_angle: float, prev_angle: float) -> float:
          delta = current_angle - prev_angle

@@ -120,7 +120,17 @@ The app listens on `UDP_COMMAND_IP:UDP_COMMAND_PORT` and accepts OSC messages.
 | `/livelink/blink_right` | optional bool-like arg | With arg: set forced right blink on/off. Without arg: toggle. |
 | `/livelink/tongue_out` | optional bool-like arg | With arg: set tongue-out on/off. Without arg: toggle. |
 | `/livelink/tracking` | optional bool-like arg | With arg (`0/1`, `false/true`, etc.): set face-tracking send OFF/ON. Without arg: toggle face-tracking send. |
-| `/get_state` or `get_state` | none | Immediately publishes current `/livelink/code` and `/livelink/tracking`. |
+| `/livelink/headpose/offset/yaw` | `yaw_correction_deg` (float/int) | Set yaw correction (degrees). Effective yaw offset becomes `HP_YAW_OFFSET + correction`. |
+| `/livelink/headpose/offset/pitch` | `pitch_correction_deg` (float/int) | Set pitch correction (degrees). Effective pitch offset becomes `HP_PITCH_OFFSET + correction`. |
+| `/livelink/headpose/offset/set` | `yaw_correction_deg` (optional), `pitch_correction_deg` (optional) | Set one or both corrections absolutely. |
+| `/livelink/headpose/offset/add` | `yaw_delta_deg` (optional), `pitch_delta_deg` (optional) | Add delta to one or both corrections. |
+| `/livelink/headpose/offset/reset` | none | Reset runtime corrections to `0.0` (reverts to config defaults). |
+| `/get_state` or `get_state` | none | Immediately publishes current `/livelink/code`, `/livelink/tracking`, and head offset state. |
+
+Notes:
+
+- Runtime commands are always treated as corrections over config defaults, so calibration in `config.json` is preserved.
+- This project controls head rotation (`yaw/pitch/roll`) offsets, not XYZ translation position offsets.
 
 ## Outbound OSC state
 
@@ -136,3 +146,11 @@ The app also sends OSC status messages to `UDP_STATE_IP:UDP_STATE_PORT`.
 - `/livelink/tracking`:
   - `1` when face-tracking send is enabled.
   - `0` when face-tracking send is disabled.
+- `/livelink/headpose/offset/yaw`:
+  - Current effective yaw offset in degrees (`default + correction`).
+- `/livelink/headpose/offset/pitch`:
+  - Current effective pitch offset in degrees (`default + correction`).
+- `/livelink/headpose/offset/correction/yaw`:
+  - Current yaw correction in degrees.
+- `/livelink/headpose/offset/correction/pitch`:
+  - Current pitch correction in degrees.

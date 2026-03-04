@@ -17,11 +17,27 @@ def _coerce_bool(value: Any) -> bool:
     return bool(value)
 
 
+def _coerce_float(value: Any) -> Optional[float]:
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, str):
+        normalized = value.strip()
+        if normalized == "":
+            return None
+        try:
+            return float(normalized)
+        except ValueError:
+            return None
+    return None
+
+
 def build_udp_command_handler(
     sender: LiveLinkSender,
     cfg: Mapping[str, Any],
     on_tracking: Optional[Callable[[Optional[bool]], None]] = None,
     on_get_state: Optional[Callable[[], None]] = None,
+    on_set_headpose_offsets: Optional[Callable[[Optional[float], Optional[float], bool], None]] = None,
+    on_reset_headpose_offsets: Optional[Callable[[], None]] = None,
 ) -> Callable[[str, List[Any]], None]:
     def handle_udp_command(address: str, args: List[Any]):
         addr = address.strip().lower()
@@ -87,6 +103,96 @@ def build_udp_command_handler(
             if on_get_state is not None:
                 on_get_state()
             print("[UDP] State requested")
+        elif addr in (
+            "/livelink/headpose/offset/yaw",
+            "livelink/headpose/offset/yaw",
+            # Legacy aliases
+            "/headpose/yaw_offset",
+            "headpose/yaw_offset",
+            "/livelink/headpose/yaw_offset",
+            "livelink/headpose/yaw_offset",
+        ):
+            yaw_offset = _coerce_float(args[0]) if args else None
+            if yaw_offset is None:
+                print(f"[UDP] Invalid yaw offset command: {address} {args}")
+                return
+            if on_set_headpose_offsets is not None:
+                on_set_headpose_offsets(yaw_offset, None, False)
+            print(f"[UDP] Head pose yaw correction set requested: {yaw_offset:.3f} deg")
+        elif addr in (
+            "/livelink/headpose/offset/pitch",
+            "livelink/headpose/offset/pitch",
+            # Legacy aliases
+            "/headpose/pitch_offset",
+            "headpose/pitch_offset",
+            "/livelink/headpose/pitch_offset",
+            "livelink/headpose/pitch_offset",
+        ):
+            pitch_offset = _coerce_float(args[0]) if args else None
+            if pitch_offset is None:
+                print(f"[UDP] Invalid pitch offset command: {address} {args}")
+                return
+            if on_set_headpose_offsets is not None:
+                on_set_headpose_offsets(None, pitch_offset, False)
+            print(f"[UDP] Head pose pitch correction set requested: {pitch_offset:.3f} deg")
+        elif addr in (
+            "/livelink/headpose/offset/set",
+            "livelink/headpose/offset/set",
+            # Legacy aliases
+            "/headpose/offsets",
+            "headpose/offsets",
+            "/livelink/headpose/offsets",
+            "livelink/headpose/offsets",
+        ):
+            yaw_offset = _coerce_float(args[0]) if len(args) >= 1 else None
+            pitch_offset = _coerce_float(args[1]) if len(args) >= 2 else None
+            if yaw_offset is None and pitch_offset is None:
+                print(f"[UDP] Invalid head offsets command: {address} {args}")
+                return
+            if on_set_headpose_offsets is not None:
+                on_set_headpose_offsets(yaw_offset, pitch_offset, False)
+            print(
+                "[UDP] Head pose corrections set requested: "
+                f"yaw={yaw_offset if yaw_offset is not None else 'unchanged'}, "
+                f"pitch={pitch_offset if pitch_offset is not None else 'unchanged'}"
+            )
+        elif addr in (
+            "/livelink/headpose/offset/add",
+            "livelink/headpose/offset/add",
+            # Legacy aliases
+            "/headpose/offsets/add",
+            "headpose/offsets/add",
+            "/livelink/headpose/offsets/add",
+            "livelink/headpose/offsets/add",
+        ):
+            yaw_delta = _coerce_float(args[0]) if len(args) >= 1 else None
+            pitch_delta = _coerce_float(args[1]) if len(args) >= 2 else None
+            if yaw_delta is None and pitch_delta is None:
+                print(f"[UDP] Invalid head offset delta command: {address} {args}")
+                return
+            if on_set_headpose_offsets is not None:
+                on_set_headpose_offsets(yaw_delta, pitch_delta, True)
+            print(
+                "[UDP] Head pose correction delta requested: "
+                f"yaw={yaw_delta if yaw_delta is not None else 0.0}, "
+                f"pitch={pitch_delta if pitch_delta is not None else 0.0}"
+            )
+        elif addr in (
+            "/livelink/headpose/offset/reset",
+            "livelink/headpose/offset/reset",
+            # Legacy aliases
+            "/headpose/offsets/reset",
+            "headpose/offsets/reset",
+            "/headpose/reset",
+            "headpose/reset",
+            "/livelink/headpose/offsets/reset",
+            "livelink/headpose/offsets/reset",
+            "/livelink/headpose/reset",
+            "livelink/headpose/reset",
+        ):
+            if on_reset_headpose_offsets is not None:
+                on_reset_headpose_offsets()
+            print("[UDP] Head pose corrections reset requested")
         else:
             print(f"[UDP] Unhandled command: {address} {args}")
 
