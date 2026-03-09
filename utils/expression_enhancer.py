@@ -23,8 +23,8 @@ DEFAULT_GLOBAL_EXPONENT = 1.0
 
 class BlendshapePostprocessor:
     """
-    Applies global sensitivity, overrides, emotion profiles, and smoothing
-    to raw blendshape scores. Now supports per-shape clamp, add, and HPF.
+    Applies calibration baseline, global sensitivity, overrides, emotion profiles,
+    and smoothing to raw blendshape scores. Supports per-shape clamp, add, and HPF.
     """
     def __init__(self, config_path: str = DEFAULT_CONFIG_PATH):
         self.config_path = config_path
@@ -38,7 +38,10 @@ class BlendshapePostprocessor:
         self.apply_global_overrides = True
 
         self._last_smoothed_scores = {}
-        self._last_raw_scores = {}  # For high-pass filters
+        self._last_raw_scores = {}    # HPF: previous input
+        self._last_hpf_scores = {}    # HPF: previous output
+        self._calibration_baseline = {}  # {category_name: neutral_score}
+        self.calibration_enabled = True
         self.load_config()
 
     def load_config(self) -> bool:
@@ -53,10 +56,49 @@ class BlendshapePostprocessor:
             self.profiles = cfg.get("emotion_profiles", {})
             self._last_smoothed_scores.clear()
             self._last_raw_scores.clear()
+            self._last_hpf_scores.clear()
             print(f"[BlendshapePostprocessor] Config loaded from {self.config_path}")
             return True
         except Exception as e:
             print(f"[BlendshapePostprocessor] Failed to load config: {e}")
+            return False
+
+    def capture_neutral(self, raw_blendshapes) -> None:
+        """Store raw blendshape scores as the neutral baseline.
+
+        Pass the raw MediaPipe blendshapes (before any post-processing) so that
+        calibration is independent of expression config changes.
+        """
+        self._calibration_baseline = {
+            bs.category_name: float(bs.score)
+            for bs in raw_blendshapes
+            if bs.category_name
+        }
+        print(f"[BlendshapePostprocessor] Calibration captured ({len(self._calibration_baseline)} shapes).")
+
+    def clear_calibration(self) -> None:
+        self._calibration_baseline.clear()
+        print("[BlendshapePostprocessor] Calibration cleared.")
+
+    def save_calibration(self, path: str) -> bool:
+        try:
+            with open(path, "w") as f:
+                json.dump({"blendshape_baseline": self._calibration_baseline}, f, indent=2)
+            print(f"[BlendshapePostprocessor] Calibration saved to {path}")
+            return True
+        except Exception as e:
+            print(f"[BlendshapePostprocessor] Failed to save calibration: {e}")
+            return False
+
+    def load_calibration(self, path: str) -> bool:
+        try:
+            with open(path, "r") as f:
+                data = json.load(f)
+            self._calibration_baseline = data.get("blendshape_baseline", {})
+            print(f"[BlendshapePostprocessor] Calibration loaded from {path} ({len(self._calibration_baseline)} shapes).")
+            return True
+        except Exception as e:
+            print(f"[BlendshapePostprocessor] Failed to load calibration: {e}")
             return False
 
     def _apply_ops(self, score: float, ops: dict, category_name: str) -> float:
@@ -64,9 +106,9 @@ class BlendshapePostprocessor:
         s = float(score)
 
         # Multiply & add
-        if "multiply" in ops: 
+        if "multiply" in ops:
             s *= float(ops["multiply"])
-        if "add" in ops: 
+        if "add" in ops:
             s += float(ops["add"])
 
         # Power curve
@@ -81,13 +123,16 @@ class BlendshapePostprocessor:
             low, high = ops["clamp"]
             s = max(float(low), min(float(high), s))
 
-        # High-pass filter (optional)
+        # High-pass filter: y[n] = alpha * (y[n-1] + x[n] - x[n-1])
+        # alpha near 1.0 = pass-through, alpha near 0 = strong HPF
         if "hp_alpha" in ops or "hp_filter" in ops:
-            alpha = float(ops.get("hp_alpha", ops.get("hp_filter")))  # 1.0 = no HPF, lower = stronger filter
+            alpha = float(ops.get("hp_alpha", ops.get("hp_filter")))
             prev_raw = self._last_raw_scores.get(category_name, s)
-            hpf_val = alpha * (s - prev_raw)
+            prev_hpf = self._last_hpf_scores.get(category_name, s)
+            hpf_val = alpha * (prev_hpf + s - prev_raw)
             self._last_raw_scores[category_name] = s
-            s = s + hpf_val  # Add HPF response
+            self._last_hpf_scores[category_name] = hpf_val
+            s = hpf_val
 
         return s
 
@@ -112,7 +157,7 @@ class BlendshapePostprocessor:
                 raw_blendshapes: Optional[List[Category]],
                 detected_emotion: str
                ) -> List[Category]:
-        """Process blendshapes with optional emotion & global overrides."""
+        """Process blendshapes with optional calibration, emotion & global overrides."""
         if not raw_blendshapes:
             return []
 
@@ -124,6 +169,12 @@ class BlendshapePostprocessor:
                 continue
 
             score = float(bs.score)
+
+            # Subtract neutral baseline (calibration) before any processing
+            if self._calibration_baseline and self.calibration_enabled:
+                score -= self._calibration_baseline.get(bs.category_name, 0.0)
+                score = max(0.0, score)
+
             score = self._apply_global_sensitivity(score)
 
             # Global overrides
@@ -161,7 +212,6 @@ class EyePostProcessor:
         self.pair_eyes = True
         self.previous = {}
 
-        # Define left/right eye movement blendshape names
         self.eye_pairs = {
             "L": ["eyeLookUpLeft", "eyeLookDownLeft", "eyeLookInLeft", "eyeLookOutLeft"],
             "R": ["eyeLookUpRight", "eyeLookDownRight", "eyeLookInRight", "eyeLookOutRight"]
@@ -223,4 +273,3 @@ class EyePostProcessor:
                 blendshape_dict[key] = float(np.clip(val, 0.0, 1.0))
 
         return blendshape_dict
-

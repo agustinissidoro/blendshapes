@@ -13,11 +13,21 @@ DEFAULTS: Dict[str, Any] = {
     "LIVE_LINK_PORT": 11111,
     "LIVE_LINK_CLIENT_NAME": "Python_LiveLinkFace",
     "FACE_MODEL_PATH": "./models/face_landmarker.task",
-    "TARGET_FPS": 30,
+    "TARGET_FPS": 30,       # Legacy — prefer PROCESS_FPS / SEND_FPS
+    "PROCESS_FPS": 60,      # Main-loop / MediaPipe processing rate
+    "SEND_FPS": 30,         # LiveLink UDP send rate (can differ from PROCESS_FPS)
+    "CAPTURE_WIDTH": 1920,  # Desired camera capture width
+    "CAPTURE_HEIGHT": 1080, # Desired camera capture height
+    "CAPTURE_FPS": 60,      # Desired camera hardware fps
+    "CROP_ENABLED": True,   # Crop center square before MediaPipe; false = pass full frame
     "DISPLAY_VIDEO": True,
     "SHOW_FPS": False,
     "BLENDSHAPE_SWAP_LR": False,
-    "HP_FILTER_WINDOW": 6,
+    "HP_FILTER_TYPE": "box",  # Head-pose temporal filter: "none" | "box" | "ema" | "kalman"
+    "HP_FILTER_WINDOW": 6,    # "box" only: rolling-mean window size
+    "HP_EMA_ALPHA": 0.5,      # "ema" only: 1.0 = raw, 0.0 = no update (lower = smoother)
+    "HP_KALMAN_Q": 1e-3,      # "kalman" only: process noise (higher = more responsive)
+    "HP_KALMAN_R": 1e-2,      # "kalman" only: measurement noise (higher = smoother)
     "HP_MAX_YAW": 45.0,
     "HP_MAX_PITCH": 20.0,
     "HP_MAX_ROLL": 45.0,
@@ -35,6 +45,9 @@ DEFAULTS: Dict[str, Any] = {
     "UDP_COMMAND_PORT": 12000,
     "UDP_STATE_IP": "127.0.0.1",
     "UDP_STATE_PORT": 12001,
+    "CALIBRATION_PATH": "calibration.json",
+    "CALIBRATION_HEADPOSE_ENABLED": True,
+    "CALIBRATION_BLENDSHAPES_ENABLED": True,
 }
 
 

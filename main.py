@@ -30,7 +30,7 @@ def main():
     emotion_enabled = bool(cfg["EMOTION_RECOGNITION_ENABLED"])
 
     cropper = FaceCropper(target_size=cfg["TARGET_SIZE"])
-    scheduler = FrameScheduler(cfg["TARGET_FPS"])
+    scheduler = FrameScheduler(cfg["PROCESS_FPS"])
     landmarker_state = LandmarkerState()
     
     # Initialize EmotionWorker (this loads the EmotionRecognizer internally)
@@ -46,22 +46,36 @@ def main():
         max_roll_deg=cfg["HP_MAX_ROLL"],
         yaw_offset_deg=cfg["HP_YAW_OFFSET"],
         pitch_offset_deg=cfg["HP_PITCH_OFFSET"],
-        euler_order=cfg["HP_EULER_ORDER"]
+        euler_order=cfg["HP_EULER_ORDER"],
+        filter_type=cfg["HP_FILTER_TYPE"],
+        ema_alpha=cfg["HP_EMA_ALPHA"],
+        kalman_q=cfg["HP_KALMAN_Q"],
+        kalman_r=cfg["HP_KALMAN_R"],
     )
     
     blendshape_post_processor = BlendshapePostprocessor(config_path=cfg["EXPRESSION_CONFIG_PATH"])
     eye_post_processor = EyePostProcessor(config_path=cfg["EXPRESSION_CONFIG_PATH"])
+    head_processor.calibration_enabled = bool(cfg["CALIBRATION_HEADPOSE_ENABLED"])
+    blendshape_post_processor.calibration_enabled = bool(cfg["CALIBRATION_BLENDSHAPES_ENABLED"])
+    if cfg.get("CALIBRATION_PATH"):
+        blendshape_post_processor.load_calibration(cfg["CALIBRATION_PATH"])
     
     sender = LiveLinkSender(
         cfg["LIVE_LINK_IP"],
         cfg["LIVE_LINK_PORT"],
         client_name=cfg["LIVE_LINK_CLIENT_NAME"],
         swap_left_right=cfg["BLENDSHAPE_SWAP_LR"],
-        target_fps=cfg["TARGET_FPS"],
+        target_fps=cfg["SEND_FPS"],
         pair_eyelids=cfg["PAIR_EYELIDS"]
     )
 
-    cam = VideoCaptureThread(src=cfg["SOURCE"], flip_image=cfg["FLIP_IMAGE"])
+    cam = VideoCaptureThread(
+        src=cfg["SOURCE"],
+        flip_image=cfg["FLIP_IMAGE"],
+        width=cfg["CAPTURE_WIDTH"],
+        height=cfg["CAPTURE_HEIGHT"],
+        fps=cfg["CAPTURE_FPS"],
+    )
     
     face_processor = FaceLandmarkerProcessor(
         model_path=cfg["FACE_MODEL_PATH"],
@@ -92,6 +106,9 @@ def main():
     def on_reset_headpose_offsets():
         action_queue.put("reset_headpose_offsets")
 
+    def on_calibrate(scope: str):
+        action_queue.put(("calibrate", scope))
+
     udp_handler = build_udp_command_handler(
         sender=sender,
         cfg=cfg,
@@ -99,6 +116,7 @@ def main():
         on_get_state=on_get_state_command,
         on_set_headpose_offsets=on_set_headpose_offsets,
         on_reset_headpose_offsets=on_reset_headpose_offsets,
+        on_calibrate=on_calibrate,
     )
     udp_server = None
     try:
@@ -136,7 +154,58 @@ def main():
         udp_server.start()
     code_running = 1
     publish_state()
-    print("Processing started...")
+
+    # --- Startup summary ---
+    actual_w = int(cam.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    actual_h = int(cam.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    actual_fps = int(cam.cap.get(cv2.CAP_PROP_FPS))
+
+    # Cap process FPS to what the camera actually delivers — processing faster is pure waste
+    if actual_fps > 0 and cfg["PROCESS_FPS"] > actual_fps:
+        scheduler.adjust_fps(actual_fps)
+        effective_process_fps = actual_fps
+    else:
+        effective_process_fps = cfg["PROCESS_FPS"]
+    hp_filter = cfg["HP_FILTER_TYPE"]
+    hp_filter_detail = ""
+    if hp_filter == "box":
+        hp_filter_detail = f"  (window={cfg['HP_FILTER_WINDOW']} frames)"
+    elif hp_filter == "ema":
+        hp_filter_detail = f"  (alpha={cfg['HP_EMA_ALPHA']})"
+    elif hp_filter == "kalman":
+        hp_filter_detail = f"  (Q={cfg['HP_KALMAN_Q']}, R={cfg['HP_KALMAN_R']})"
+
+    print("\033[2J\033[H", end="")  # Clear terminal
+    print("")
+    print("=" * 52)
+    print("  BLENDSHAPES — STARTUP CONFIGURATION")
+    print("=" * 52)
+    print(f"  LiveLink target        {cfg['LIVE_LINK_IP']}:{cfg['LIVE_LINK_PORT']}")
+    print(f"  LiveLink client name   {cfg['LIVE_LINK_CLIENT_NAME']}")
+    print(f"  OSC commands (in)      {cfg['UDP_COMMAND_IP']}:{cfg['UDP_COMMAND_PORT']}")
+    print(f"  OSC state   (out)      {cfg['UDP_STATE_IP']}:{cfg['UDP_STATE_PORT']}")
+    print("-" * 52)
+    print(f"  Camera source          #{cfg['SOURCE']}")
+    print(f"  Capture resolution     {actual_w}x{actual_h} @ {actual_fps} fps")
+    print(f"  Flip image             {'yes' if cfg['FLIP_IMAGE'] else 'no'}")
+    print("-" * 52)
+    print(f"  Process FPS            {effective_process_fps}{' (capped to camera)' if effective_process_fps != cfg['PROCESS_FPS'] else ''}")
+    print(f"  Send FPS               {cfg['SEND_FPS']}")
+    print(f"  Crop to center square  {'yes — ' + str(min(actual_h, actual_w, cfg['TARGET_SIZE'])) + 'px' if cfg['CROP_ENABLED'] else 'no (full frame)'}")
+    print("-" * 52)
+    print(f"  Head-pose filter       {hp_filter}{hp_filter_detail}")
+    print(f"  Head-pose calibration  {'enabled' if cfg['CALIBRATION_HEADPOSE_ENABLED'] else 'disabled'}")
+    print(f"  Blendshape calibration {'enabled' if cfg['CALIBRATION_BLENDSHAPES_ENABLED'] else 'disabled'}")
+    print(f"  Calibration file       {cfg.get('CALIBRATION_PATH', 'n/a')}")
+    print("-" * 52)
+    print(f"  Post-process shapes    {'yes' if cfg['POST_PROCESS_BLENDSHAPES'] else 'no'}")
+    print(f"  Eye post-processor     {'yes' if cfg['EYE_POST_PROCESSOR'] else 'no'}")
+    print(f"  Pair eyelids           {'yes' if cfg['PAIR_EYELIDS'] else 'no'}")
+    print(f"  Swap L/R blendshapes   {'yes' if cfg['BLENDSHAPE_SWAP_LR'] else 'no'}")
+    print(f"  Emotion recognition    {'yes' if emotion_enabled else 'no'}")
+    print(f"  Display video          {'yes' if cfg['DISPLAY_VIDEO'] else 'no'}")
+    print("=" * 52)
+    print("")
 
     processed_pose_angles_for_display = None # For overlay display
     overlay_canvas = None
@@ -166,12 +235,14 @@ def main():
                     eye_post_processor.load_config()
                 elif action_name == "toggle_tracking":
                     send_face_tracking = not send_face_tracking
+                    sender.set_mode("normal" if send_face_tracking else "neutral")
                     print(f"[Main] Action: Face tracking send toggled to {'ON' if send_face_tracking else 'OFF'}.")
                     publish_tracking_state()
                 elif action_name == "set_tracking":
                     target_tracking_state = bool(action_value)
                     if target_tracking_state != send_face_tracking:
                         send_face_tracking = target_tracking_state
+                        sender.set_mode("normal" if send_face_tracking else "neutral")
                         print(f"[Main] Action: Face tracking send set to {'ON' if send_face_tracking else 'OFF'}.")
                     else:
                         print(f"[Main] Action: Face tracking already {'ON' if send_face_tracking else 'OFF'}.")
@@ -210,6 +281,35 @@ def main():
                         f"effective yaw={yaw_offset_deg:.3f}, effective pitch={pitch_offset_deg:.3f})"
                     )
                     publish_headpose_offset_state()
+                elif action_name == "calibrate":
+                    scope = action_value  # "all" | "headpose" | "blendshapes" | "clear"
+                    if scope == "clear":
+                        head_processor.reset_offsets()
+                        blendshape_post_processor.clear_calibration()
+                        publish_headpose_offset_state()
+                        print("[Main] Action: Calibration cleared.")
+                    else:
+                        calibrate_hp = scope in ("all", "headpose")
+                        calibrate_bs = scope in ("all", "blendshapes")
+                        if calibrate_hp:
+                            snap = landmarker_state.snapshot()
+                            if snap.transform_matrix is not None:
+                                yaw_eff, pitch_eff, roll_eff = head_processor.capture_neutral()
+                                publish_headpose_offset_state()
+                                print(
+                                    f"[Main] Action: Head pose calibrated "
+                                    f"(yaw_corr={yaw_eff:.3f}°, pitch_corr={pitch_eff:.3f}°, roll_corr={roll_eff:.3f}°)"
+                                )
+                            else:
+                                print("[Main] Action: Head pose calibration skipped — no transform data yet.")
+                        if calibrate_bs:
+                            snap = landmarker_state.snapshot()
+                            if snap.blendshapes is not None:
+                                blendshape_post_processor.capture_neutral(snap.blendshapes)
+                                if cfg.get("CALIBRATION_PATH"):
+                                    blendshape_post_processor.save_calibration(cfg["CALIBRATION_PATH"])
+                            else:
+                                print("[Main] Action: Blendshape calibration skipped — no blendshape data yet.")
                 elif action_name == "quit":
                     print("[Main] Action: Quit requested via keyboard.")
                     run_main_loop = False
@@ -232,7 +332,7 @@ def main():
                 scheduler.wait_for_next_frame() # Ensure scheduler still runs
                 continue
 
-            cropped_frame = cropper.crop_center_square(frame)
+            cropped_frame = cropper.crop_center_square(frame) if cfg["CROP_ENABLED"] else frame
             if cropped_frame is not None:
                 rgb_frame = cv2.cvtColor(cropped_frame, cv2.COLOR_BGR2RGB)
                 face_processor.process(rgb_frame, timestamp_ms) # Triggers landmarker callback

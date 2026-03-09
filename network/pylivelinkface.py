@@ -91,7 +91,7 @@ class PyLiveLinkFace:
         self._version = 6
         self._frame_counter = 0
         self._sub_frame = 1056060032                # I don't know how to calculate this
-        self._denominator = int(self._fps / 60)     # 1 most of the time
+        self._denominator = max(1, int(self._fps / 60))  # 1 most of the time
         self._blend_shapes = [0.000] * 61
         self._old_blend_shapes = [None] * 61         # used for filtering, lazy init
 
@@ -130,7 +130,7 @@ class PyLiveLinkFace:
         send over a network. """              
         
         version_packed = struct.pack('<I', self._version)
-        uuiid_packed = bytes(self._uuid, 'utf-8')
+        uuid_packed = bytes(self._uuid, 'utf-8')
         name_lenght_packed = struct.pack('!i', len(self._name))
         name_packed = bytes(self._name, 'utf-8')
 
@@ -139,7 +139,7 @@ class PyLiveLinkFace:
         frame_rate_packed = struct.pack("!II", self._fps, self._denominator)
         data_packed = struct.pack('!B61f', 61, *self._blend_shapes)
         
-        return version_packed + uuiid_packed + name_lenght_packed + name_packed + \
+        return version_packed + uuid_packed + name_lenght_packed + name_packed + \
             frames_packed + frame_rate_packed + data_packed
 
     def get_blendshape(self, index: FaceBlendShape) -> float:

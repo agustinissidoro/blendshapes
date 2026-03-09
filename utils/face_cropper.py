@@ -8,13 +8,10 @@ class FaceCropper:
 
     def crop_center_square(self, image):
         h, w = image.shape[:2]
-        size = min(h, w)
+        size = min(h, w, self.target_size)  # never upsample
 
-        # Compute top-left coordinates for center crop
         x1 = (w - size) // 2
         y1 = (h - size) // 2
 
-        # Crop and resize
-        cropped = image[y1:y1 + size, x1:x1 + size]
-        return cv2.resize(cropped, (self.target_size, self.target_size))
+        return image[y1:y1 + size, x1:x1 + size]
 

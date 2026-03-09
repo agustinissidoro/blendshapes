@@ -260,10 +260,6 @@ class LiveLinkSender(threading.Thread):
             self.running = False
 
 
-    # Keep this method name if run() calls it
-    def _send_blendshapes(self):
-         self._send_data(self._face_normal)
-
     def _set_neutral_pose(self, face: PyLiveLinkFace):
         for i in range(61):
             face.set_blendshape(FaceBlendShape(i), 0.0, no_filter=True)
