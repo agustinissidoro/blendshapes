@@ -110,7 +110,7 @@ def main():
         action_queue.put(("calibrate", scope))
 
     udp_handler = build_udp_command_handler(
-        sender=sender,
+        action_queue=action_queue,
         cfg=cfg,
         on_tracking=on_tracking_command,
         on_get_state=on_get_state_command,
