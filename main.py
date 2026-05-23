@@ -144,6 +144,7 @@ def main():
 
     def publish_state():
         state_sender.send_message("/livelink/code", [code_running])
+        state_sender.send_message("/livelink/state", [live_link_state])
         publish_tracking_state()
         publish_headpose_offset_state()
 
